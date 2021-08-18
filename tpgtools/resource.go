@@ -584,6 +584,7 @@ func (r *Resource) getSampleAccessoryFolder() string {
 	resourceType := strings.ToLower(r.Type())
 	packageName := strings.ToLower(r.productMetadata.PackageName)
 	sampleAccessoryFolder := path.Join(*tPath, packageName, "samples", resourceType)
+	glog.Errorf("sample accessory folder %q.", sampleAccessoryFolder)
 	return sampleAccessoryFolder
 }
 
@@ -670,7 +671,7 @@ func (r *Resource) loadDCLSamples() []Sample {
 	sampleAccessoryFolder := r.getSampleAccessoryFolder()
 	packagePath := r.productMetadata.PackagePath
 	version := r.versionMetadata.V
-	resourceType := strings.ToLower(r.Type())
+	resourceType := r.Type()
 	sampleFriendlyMetaPath := path.Join(sampleAccessoryFolder, "meta.yaml")
 	samples := []Sample{}
 
@@ -689,6 +690,7 @@ func (r *Resource) loadDCLSamples() []Sample {
 		}
 	}
 	for _, file := range files {
+		glog.Errorf("Reading %s", file.Name())
 		if !strings.HasSuffix(file.Name(), ".yaml") {
 			continue
 		}
@@ -696,8 +698,10 @@ func (r *Resource) loadDCLSamples() []Sample {
 		sampleOGFilePath := path.Join(samplesPath, file.Name())
 		var tc []byte
 		if pathExists(sampleFriendlyMetaPath) {
+			glog.Errorf("sample meta exists")
 			tc, err = mergeYaml(sampleOGFilePath, sampleFriendlyMetaPath)
 		} else {
+			glog.Errorf("sample meta not exists %q", sampleFriendlyMetaPath)
 			tc, err = ioutil.ReadFile(path.Join(samplesPath, file.Name()))
 		}
 		if err != nil {
@@ -722,9 +726,10 @@ func (r *Resource) loadDCLSamples() []Sample {
 
 		primaryResource := *sample.PrimaryResource
 		parts := strings.Split(primaryResource, ".")
-		primaryResourceName := parts[len(parts)-2]
+		primaryResourceName := snakeToTitleCase(parts[len(parts)-2])
 
 		if !versionMatch || primaryResourceName != resourceType {
+			glog.Errorf("skipping %s since no match with %s.", primaryResourceName, resourceType)
 			continue
 		}
 
